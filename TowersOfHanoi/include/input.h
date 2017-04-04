@@ -1,12 +1,11 @@
 #pragma once
 
-#include <vector>
+#include <map>
 
 typedef unsigned int keyboard_key;
+typedef unsigned int mouse_button;
 
-struct InputHandler
+struct Input
 {
-	std::vector<keyboard_key> pressed;
-	std::vector<keyboard_key> down;
-	std::vector<keyboard_key> released;
+
 };

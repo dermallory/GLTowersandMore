@@ -31,7 +31,7 @@ void APIENTRY glDebugOutput(GLenum source,
 
 // glfw callbacks
 void error_callback(int error, const char* description);
-void window_close_callback(GLFWwindow* window, int focused);
+//void window_close_callback(GLFWwindow* window, int focused);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 //void window_resize_callback(GLFWwindow* window, int width, int height);
@@ -45,6 +45,7 @@ void setup_shaders();
 void setup_models();
 void setup_attributes();
 void setup_camera();
+void spawn_world();
 void update();
 void render();
 
@@ -76,6 +77,15 @@ int main()
 	setup_shaders();
 	setup_attributes();
 	setup_camera();
+
+	spawn_world();
+
+	while (!glfwWindowShouldClose(g_window))
+	{
+		render();
+		glfwSwapBuffers(g_window);
+		glfwPollEvents();
+	}
 
 	shutdown();	
 	
@@ -113,6 +123,7 @@ void gl_init()
 		fprintf(stderr, "GLFW initialization has failed.\n");
 		exit(1);
 	}
+	g_window = window;
 
 	//set_windowed(window, windowWidth, windowHeight);
 
@@ -135,7 +146,7 @@ void gl_init()
 		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 	}
 
-	glfwSetWindowCloseCallback(window, GLFWwindowclosefun(window_close_callback));
+	//glfwSetWindowCloseCallback(window, GLFWwindowclosefun(window_close_callback));
 	//glfwSetWindowSizeCallback(window, GLFWwindowsizefun(window_resize_callback));
 	//glfwSetFramebufferSizeCallback(window, GLFWframebuffersizefun(frame_buffer_size_callback));
 	glfwSetKeyCallback(window, GLFWkeyfun(key_callback));
@@ -156,7 +167,14 @@ void shutdown()
 	// destroy shaders, buffers, etc. here (before gl-context is destroyed)
 	// ...
 
-	
+	// destroy "world"
+	for each (auto worldObject in g_worldObjects)
+	{
+		delete worldObject;
+	}
+
+	g_worldObjects.clear();
+
 	// destroy shaders
 	for each (auto program_pair in g_shaderPrograms)
 	{
@@ -259,8 +277,8 @@ void setup_attributes()
 		const Model* model = g_models[mesh_pair.first];
 		
 		Mesh::MeshAttributeFlags flags = mesh->flags();
-
-		glVertexArrayVertexBuffer(model->vao, NULL, mesh->vertexBuffer(), NULL, mesh->stride());
+		
+		glVertexArrayVertexBuffer(model->vao, 0, mesh->vertexBuffer(), NULL, mesh->stride());
 		glVertexArrayElementBuffer(model->vao, mesh->indexBuffer());
 
 		if (model->shader == shader_type::GENERAL_DIFFUSE)
@@ -285,6 +303,39 @@ void setup_camera()
 {
 	g_camera.position = glm::vec3(0.0f, 0.0f, 1.0f);
 	g_camera.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+	g_camera.fov = 45.0f;
+	g_camera.zNear = 0.1f;
+	g_camera.zFar = 100.0f;
+}
+
+void spawn_world()
+{
+	// example object
+	Transform transform;
+	transform.position = glm::vec3(0, 0, -1);
+	transform.rotation = glm::vec3(0, 0, 0);
+	transform.scale = glm::vec3(0.125f, 0.125f, 0.125f);
+
+	model_type modelType = model_type::RING;
+
+	WorldObject* ring1 = new WorldObject(transform, modelType);
+
+	ring1->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	
+	g_worldObjects.push_back(ring1);
+
+	// example object 2
+	transform.position = glm::vec3(-1.0f, 0.0f, -1.0f);
+	transform.rotation = glm::vec3(0, 0, 0);
+	transform.scale = glm::vec3(0.125f, 0.125f, 0.125f);
+
+	modelType = model_type::RING;
+
+	WorldObject* ring2 = new WorldObject(transform, modelType);
+
+	ring1->setColor(glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
+
+	g_worldObjects.push_back(ring2);
 }
 
 /*
@@ -292,14 +343,51 @@ void setup_camera()
 */
 void update()
 {
-	
 }
 
 void render()
 {
-	// set the shader program
+	GLfloat clearColor[3] = {0.15f, 0.10f, 0};
+	glClearBufferfv(GL_COLOR, 0, clearColor);
+	
+	for each(auto obj in g_worldObjects)
+	{
+		const Transform& transform = obj->getTransform();
+		model_type type = obj->getModelType();
 
-	// draw the meshes indexed. uniform the model_id.
+		Model* model = g_models[type];
+		Mesh* mesh = g_meshes[type];
+		Shader* shader = g_shaderPrograms[model->shader];
+
+		// set the mvp
+		glm::mat4 scale = glm::scale(glm::mat4(), transform.scale);
+		glm::mat4 rotationX = glm::rotate(glm::mat4(), transform.rotation.x, glm::vec3(1, 0, 0));
+		glm::mat4 rotationY = glm::rotate(glm::mat4(), transform.rotation.y, glm::vec3(0, 1, 0));
+		glm::mat4 rotationZ = glm::rotate(glm::mat4(), transform.rotation.z, glm::vec3(0, 0, 1));
+		glm::mat4 translation = glm::translate(glm::mat4(), transform.position);
+
+		glm::mat4 model_mat = scale*rotationZ*rotationY*rotationX*translation;
+		glm::mat4 view_mat = glm::lookAt(g_camera.position, glm::vec3(0), glm::vec3(0, 1, 0));
+		glm::mat4 projection_mat = glm::perspective(g_camera.fov, (float)WINDOW_WIDTH/WINDOW_HEIGHT, g_camera.zNear, g_camera.zFar);
+		
+		glm::mat4 mvp = projection_mat*view_mat*model_mat;
+
+		glUseProgram(shader->program);
+
+		// set the uniforms in the model's shader
+		if (shader->type == shader_type::GENERAL_DIFFUSE)
+		{
+			const GLuint* color_uniform = shader->uniforms[shader_uniform::COLOR];
+			const GLuint* mvp_uniform = shader->uniforms[shader_uniform::MVP];
+
+			glUniform4fv(*color_uniform, 1, glm::value_ptr(obj->getColor()));
+			glUniformMatrix4fv(*mvp_uniform, 1, GL_FALSE, glm::value_ptr(mvp));
+		}
+
+		glBindVertexArray(model->vao);
+		glDrawElements(GL_TRIANGLES, mesh->indicesCount(), GL_UNSIGNED_INT, NULL);
+		glBindVertexArray(0);
+	}
 }
 
 
@@ -311,20 +399,14 @@ void error_callback(int error, const char* description)
 	fprintf(stderr, "Error: %s\n", description);
 }
 
-void window_close_callback(GLFWwindow* window, int focused)
-{
-	glfwDestroyWindow(window);
-	printf("bye\n");
-}
-
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-
+	
 }
 
-void mouse_button_callback(GLFWwindow * window, int button, int action, int mods)
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-
+	
 }
 
 

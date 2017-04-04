@@ -29,10 +29,15 @@ public:
 	void setRotation(glm::vec3 rotation);
 	void setScale(glm::vec3 scale);
 
+	void setColor(glm::vec4 color);
+	glm::vec4 WorldObject::getColor() const;
+
 	model_type getModelType() const;
 	const Transform& getTransform() const;
 
 private:
 	Transform m_transform;
 	model_type m_modelType;
+
+	glm::vec4 m_color;
 };

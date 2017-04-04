@@ -31,6 +31,16 @@ void WorldObject::setScale(glm::vec3 scale)
 {
 }
 
+void WorldObject::setColor(glm::vec4 color)
+{
+	m_color = color;
+}
+
+glm::vec4 WorldObject::getColor() const
+{
+	return m_color;
+}
+
 model_type WorldObject::getModelType() const
 {
 	return m_modelType;
