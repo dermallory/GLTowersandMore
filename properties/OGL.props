@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <SolutionInc>$(SolutionDir)include\</SolutionInc>
+    <SolutionSrc>$(SolutionDir)src\</SolutionSrc>
+    <SolutionAss>$(SolutionDir)assets\</SolutionAss>
+    <SolutionLib>$(SolutionDir)ext\lib\$(Configuration)\</SolutionLib>
+    <SolutionBin>$(SolutionDir)ext\bin\$(Configuration)\</SolutionBin>
+    <Build>$(ProjectDir)build\</Build>
+    <ProjectAss>$(ProjectDir)assets\</ProjectAss>
+    <ProjectSrc>$(ProjectDir)src\</ProjectSrc>
+    <ProjectInc>$(ProjectDir)include\</ProjectInc>
+    <ProjectLib>$(ProjectDir)ext\lib\$(Configuration)\</ProjectLib>
+    <ProjectBin>$(ProjectDir)ext\bin\$(Configuration)\</ProjectBin>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutDir>$(Build)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)intermediate\$(Configuration)\$(Platform)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <Optimization>Full</Optimization>
+      <PreprocessorDefinitions>GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir)ext\include\;$(SolutionDir)ext\include\;$(ProjectInc);$(SolutionInc)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <PreBuildEvent>
+      <Command>xcopy "$(ProjectAss)." "$(TargetDir)" /y /e /i /f /d</Command>
+    </PreBuildEvent>
+    <PreBuildEvent>
+      <Message>
+      </Message>
+    </PreBuildEvent>
+    <Link>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectLib)\;$(SolutionLib)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PreLinkEvent>
+      <Command>
+      </Command>
+    </PreLinkEvent>
+    <PreLinkEvent>
+      <Message>
+      </Message>
+    </PreLinkEvent>
+    <PostBuildEvent>
+      <Command>xcopy "$(SolutionBin)." "$(TargetDir)" /y /e /i /f /d
+xcopy "$(ProjectBin)." "$(TargetDir)" /y /e /i /f /d</Command>
+      <Message>copy assets to build directory</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="SolutionInc">
+      <Value>$(SolutionInc)</Value>
+    </BuildMacro>
+    <BuildMacro Include="SolutionSrc">
+      <Value>$(SolutionSrc)</Value>
+    </BuildMacro>
+    <BuildMacro Include="SolutionAss">
+      <Value>$(SolutionAss)</Value>
+    </BuildMacro>
+    <BuildMacro Include="SolutionLib">
+      <Value>$(SolutionLib)</Value>
+    </BuildMacro>
+    <BuildMacro Include="SolutionBin">
+      <Value>$(SolutionBin)</Value>
+    </BuildMacro>
+    <BuildMacro Include="Build">
+      <Value>$(Build)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ProjectAss">
+      <Value>$(ProjectAss)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ProjectSrc">
+      <Value>$(ProjectSrc)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ProjectInc">
+      <Value>$(ProjectInc)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ProjectLib">
+      <Value>$(ProjectLib)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ProjectBin">
+      <Value>$(ProjectBin)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>
