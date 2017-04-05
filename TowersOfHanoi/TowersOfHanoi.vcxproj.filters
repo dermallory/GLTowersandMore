@@ -21,6 +21,9 @@
     <ClCompile Include="include\worldobject.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="camera.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\window.h">
