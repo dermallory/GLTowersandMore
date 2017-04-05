@@ -19,16 +19,22 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="camera.cpp" />
     <ClCompile Include="include\worldobject.cpp" />
+    <ClCompile Include="src\action.cpp" />
+    <ClCompile Include="src\camera.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\movetowards.cpp" />
+    <ClCompile Include="src\rotatetowards.cpp" />
+    <ClCompile Include="src\transform.cpp" />
     <ClCompile Include="src\window.cpp" />
-    <ClCompile Include="transform.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\action.h" />
     <ClInclude Include="include\camera.h" />
     <ClInclude Include="include\input.h" />
     <ClInclude Include="include\model.h" />
+    <ClInclude Include="include\movetowards.h" />
+    <ClInclude Include="include\rotatetowards.h" />
     <ClInclude Include="include\shader.h" />
     <ClInclude Include="include\transform.h" />
     <ClInclude Include="include\window.h" />

@@ -1,7 +1,10 @@
 #pragma once
 
+#include <list>
 #include <model.h>
 #include <transform.h>
+
+class Action;
 
 // Treated like an instance of a "model".
 //
@@ -20,6 +23,8 @@ public:
 
 public:
 	WorldObject(Transform transform, model_type type);
+
+	void update(glm::float32 deltaTime);
 	
 	void translateBy(glm::vec3 translation);
 	void rotateBy(glm::vec3 rotation);
@@ -33,6 +38,8 @@ public:
 	void setRotation(glm::vec3 rotation);
 	void setScale(glm::vec3 scale);
 
+	void pushAction(Action* action);
+
 	void setColor(glm::vec4 color);
 	glm::vec4 WorldObject::getColor() const;
 
@@ -44,4 +51,6 @@ private:
 	model_type m_modelType;
 
 	glm::vec4 m_color;
+
+	std::list<Action*> m_actions;
 };

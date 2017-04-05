@@ -46,7 +46,7 @@ void setup_models();
 void setup_attributes();
 void setup_camera();
 void spawn_world();
-void update();
+void update(float deltaTime);
 void render();
 
 // utility prototypes
@@ -55,6 +55,7 @@ GLuint load_shaders(const char * vertex_file_path,const char * fragment_file_pat
 // constants
 const int WINDOW_WIDTH = 1080;
 const int WINDOW_HEIGHT = 640;
+const int FRAMES_PER_SECOND = 60;
 
 // globals
 GLFWwindow* g_window;
@@ -78,13 +79,28 @@ int main()
 
 	spawn_world();
 
+	// main loop
+	double frameDelta = (double)1/FRAMES_PER_SECOND;
+	double accumulatedTime = 0;
+
 	while (!glfwWindowShouldClose(g_window))
 	{
-		update();
+		double timeSimulatedThisIteration = 0;
+		double startTime = glfwGetTime();
+
+		while ( accumulatedTime >= frameDelta )
+		{
+			update((float)frameDelta);
+			accumulatedTime -= frameDelta;
+			timeSimulatedThisIteration += frameDelta;
+		}
+
 		render();
 
 		glfwSwapBuffers(g_window);
 		glfwPollEvents();
+
+		accumulatedTime += glfwGetTime() - startTime;
 	}
 
 	shutdown();	
@@ -249,14 +265,36 @@ void setup_meshes()
 	{
 		g_meshes.emplace(std::make_pair(model_type::RING, ringMesh));
 	}
+
+	Mesh* pegMesh = new Mesh();
+	result = pegMesh->loadMesh("cube.obj");
+	if (!result)
+	{
+		printf("Failure to load ring mesh.\n");
+		delete pegMesh;		
+	}
+	else
+	{
+		g_meshes.emplace(std::make_pair(model_type::PEG, pegMesh));
+	}
 }
 
 void setup_models()
 {
+	// ring
 	Model* model = new Model();
 	model->shader = shader_type::GENERAL_DIFFUSE;
 	model->type = model_type::RING;
 	
+	glCreateVertexArrays(1, &model->vao);
+
+	g_models.emplace(model->type, model);
+
+	// peg
+	model = new Model();
+	model->shader = shader_type::GENERAL_DIFFUSE;
+	model->type = model_type::PEG;
+
 	glCreateVertexArrays(1, &model->vao);
 
 	g_models.emplace(model->type, model);
@@ -277,7 +315,6 @@ void setup_shaders()
 
 	g_shaderPrograms.emplace(diffuse_shader->type, diffuse_shader);
 }
-
 
 void setup_attributes()
 {
@@ -315,7 +352,7 @@ void setup_camera()
 	auto perspectiveSettings = PerspectiveCameraSettings((float)WINDOW_WIDTH/WINDOW_HEIGHT);
 
 	Transform perspectiveTransform;
-	perspectiveTransform.position = glm::vec3(0, 0, 5);
+	perspectiveTransform.position = glm::vec3(0, 0, 1);
 
 	g_perspective = new PerspectiveCamera(perspectiveTransform, perspectiveSettings);
 
@@ -332,7 +369,7 @@ void spawn_world()
 {
 	// example object
 	Transform transform;
-	transform.position = glm::vec3(0, 0, 0);
+	transform.position = glm::vec3(0, 0, -1);
 	transform.pitch = 90;
 
 	model_type modelType = model_type::RING;
@@ -342,14 +379,26 @@ void spawn_world()
 	ring1->setColor(glm::vec4(1.f, 0, 0, 1.0f));
 	
 	g_worldObjects.push_back(ring1);
+
+	// other object
+	transform.position = glm::vec3(-3, 0, -1);
+	transform.scale = glm::vec3(0.125f, 1, 0.125f);
+	transform.pitch = 0;
+
+	modelType = model_type::PEG;
+
+	WorldObject* peg1 = new WorldObject(transform, modelType);
+
+	peg1->setColor(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+
+	g_worldObjects.push_back(peg1);
 }
 
 /*
 * UPDATING
 */
-void update()
+void update(float deltaTime)
 {
-	static float zoom = 0.0f;
 	//g_perspective->rotateBy(glm::vec3(0, 0.05f, 0));
 	//g_perspective->rotateBy(glm::vec3(0, 0.05f, 0));
 	//g_perspective->m_settings.m_zoom = sin(zoom+=5.f);
@@ -358,6 +407,7 @@ void update()
 	for each(auto obj in g_worldObjects)
 	{
 		obj->setColor(glm::vec4((float)rand()/RAND_MAX, (float)rand()/RAND_MAX, (float)rand()/RAND_MAX, (float)rand()/RAND_MAX));
+		obj->update(deltaTime);
 	}
 }
 
@@ -401,7 +451,7 @@ void render()
 		}
 
 		glBindVertexArray(model->vao);
-		glDrawElements(GL_TRIANGLES, mesh->indicesCount(), GL_UNSIGNED_INT, NULL);
+		glDrawElements(GL_TRIANGLE_STRIP, mesh->indicesCount(), GL_UNSIGNED_INT, NULL);
 		glBindVertexArray(0);
 	}
 }

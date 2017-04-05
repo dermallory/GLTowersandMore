@@ -16,7 +16,7 @@ glm::quat Transform::rotation()
 	glm::quat y = glm::angleAxis(yaw, glm::vec3(0, 1, 0));
 	glm::quat z = glm::angleAxis(roll, glm::vec3(0, 0, -1));
 
-	glm::quat outputRot = glm::normalize(x*y*z);
+	glm::quat outputRot = glm::normalize(z*y*x);
 
 	return outputRot;
 }

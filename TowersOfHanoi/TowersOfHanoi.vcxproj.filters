@@ -21,10 +21,19 @@
     <ClCompile Include="include\worldobject.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="camera.cpp">
+    <ClCompile Include="src\action.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="transform.cpp">
+    <ClCompile Include="src\camera.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\transform.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\movetowards.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rotatetowards.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
@@ -48,6 +57,15 @@
       <Filter>include</Filter>
     </ClInclude>
     <ClInclude Include="include\worldobject.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\action.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\movetowards.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\rotatetowards.h">
       <Filter>include</Filter>
     </ClInclude>
   </ItemGroup>

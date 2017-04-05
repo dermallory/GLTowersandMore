@@ -1,10 +1,30 @@
 #include "worldobject.h"
+#include <action.h>
 
 WorldObject::WorldObject(Transform transform, model_type modelType)
 :
-m_modelType(modelType),
-m_transform(transform)
+	m_modelType(modelType),
+	m_transform(transform),
+	m_color(),
+	m_actions()
 {
+}
+
+void WorldObject::update(glm::float32 deltaTime)
+{
+	for each(auto action in m_actions)
+	{
+		if (action->isComplete())
+		{
+			delete action;
+		}
+		else
+		{
+			action->update(deltaTime);
+		}
+	}
+
+	m_actions.remove_if([](Action* action){ return !action || action->isComplete(); });
 }
 
 void WorldObject::translateBy(glm::vec3 translation)
@@ -60,6 +80,11 @@ void WorldObject::setRotation(glm::vec3 rotation)
 void WorldObject::setScale(glm::vec3 scale)
 {
 	m_transform.scale = scale;
+}
+
+void WorldObject::pushAction(Action* action)
+{
+	m_actions.push_back(action);
 }
 
 void WorldObject::setColor(glm::vec4 color)

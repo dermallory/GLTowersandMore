@@ -1,5 +1,5 @@
 
-#include "include\camera.h"
+#include <camera.h>
 #include <glm\gtc\matrix_transform.hpp>
 
 Camera::Camera(Transform transform)
@@ -65,14 +65,10 @@ glm::mat4 PerspectiveCamera::viewProjection()
 	glm::vec3 cameraForward = m_transform.forward();
 	glm::vec3 cameraUp = m_transform.up();
 
-	glm::mat4 view_mat = glm::lookAt(m_transform.position, m_transform.position + cameraForward, cameraUp) * camera_zoom;
+	glm::mat4 view_mat = glm::lookAt(m_transform.position, m_transform.position + cameraForward, cameraUp)*camera_zoom;
 	glm::mat4 projection_mat = glm::perspective(m_settings.m_fov, m_settings.m_aspectRatio, m_settings.m_zNear, m_settings.m_zFar);
 
-	glm::mat4 projection_view = projection_mat*view_mat;
-
-	return projection_view;
-
-	return glm::mat4();
+	return projection_mat*view_mat;
 }
 
 
