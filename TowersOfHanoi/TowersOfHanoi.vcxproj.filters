@@ -24,6 +24,9 @@
     <ClCompile Include="camera.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="transform.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\window.h">

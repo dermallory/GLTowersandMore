@@ -58,11 +58,13 @@ const int WINDOW_HEIGHT = 640;
 
 // globals
 GLFWwindow* g_window;
-Camera g_camera;
+
 std::unordered_map<model_type, Mesh*> g_meshes;
 std::unordered_map<model_type, Model*> g_models;
 std::unordered_map<shader_type, Shader*> g_shaderPrograms;
 std::vector<WorldObject*> g_worldObjects;
+PerspectiveCamera* g_perspective = nullptr;
+OrthoCamera* g_ortho = nullptr;
 
 int main()
 {
@@ -80,6 +82,7 @@ int main()
 	{
 		update();
 		render();
+
 		glfwSwapBuffers(g_window);
 		glfwPollEvents();
 	}
@@ -171,6 +174,16 @@ void shutdown()
 	}
 
 	g_worldObjects.clear();
+
+	// destroy camera
+	if (g_perspective)
+	{
+		delete g_perspective;
+	}
+	if (g_ortho)
+	{
+		delete g_ortho;
+	}
 
 	// destroy shaders
 	for each (auto program_pair in g_shaderPrograms)
@@ -298,23 +311,29 @@ void setup_attributes()
 
 void setup_camera()
 {
-	g_camera.transform.position = glm::vec3(0.0f, 0.0f, 2.0f);
-	g_camera.pitch = 0.0f;
-	g_camera.yaw = 0.0f;
-	g_camera.roll = 0.0f;
-	g_camera.zoom = 0.0f;
-	g_camera.fov = 45.0f;
-	g_camera.zNear = 0.1f;
-	g_camera.zFar = 100.0f;
+	// setup the perspective camera using default settings
+	auto perspectiveSettings = PerspectiveCameraSettings((float)WINDOW_WIDTH/WINDOW_HEIGHT);
+
+	Transform perspectiveTransform;
+	perspectiveTransform.position = glm::vec3(0, 0, 5);
+
+	g_perspective = new PerspectiveCamera(perspectiveTransform, perspectiveSettings);
+
+	// setup the ortho camera using default settings
+	auto orthoSettings = OrthoCameraSettings();
+
+	Transform orthoTransform;
+	orthoTransform.position = glm::vec3(0, 0, 10);
+
+	g_ortho = new OrthoCamera(orthoTransform, orthoSettings);
 }
 
 void spawn_world()
 {
 	// example object
 	Transform transform;
-	transform.position = glm::vec3(0, 0, -1);
-	transform.rotation = glm::vec3(90, 0, 0);
-	transform.scale = glm::vec3(0.125f, 0.125f, 0.125f);
+	transform.position = glm::vec3(0, 0, 0);
+	transform.pitch = 90;
 
 	model_type modelType = model_type::RING;
 
@@ -323,51 +342,6 @@ void spawn_world()
 	ring1->setColor(glm::vec4(1.f, 0, 0, 1.0f));
 	
 	g_worldObjects.push_back(ring1);
-
-	// example object 2
-	transform.position = glm::vec3(-1.0f, 0.0f, -1.0f);
-	transform.rotation = glm::vec3(0, 0, 0);
-	transform.scale = glm::vec3(0.125f, 0.125f, 0.125f);
-
-	modelType = model_type::RING;
-
-	WorldObject* ring2 = new WorldObject(transform, modelType);
-
-	ring2->setColor(glm::vec4(0.3568627f, 0.6117647f, 0.3921568f, 1.0f));
-
-	g_worldObjects.push_back(ring2);
-
-	// example object 3
-	transform.position = glm::vec3(1.0f, 0.0f, -1.0f);
-	transform.rotation = glm::vec3(0, 0, 0);
-	transform.scale = glm::vec3(0.125f, 0.125f, 0.125f);
-
-	modelType = model_type::RING;
-
-	WorldObject* ring3 = new WorldObject(transform, modelType);
-
-	ring3->setColor(glm::vec4(0, 0, 0.3921568f, 1.0f));
-
-	g_worldObjects.push_back(ring3);
-
-	for (int i = 0; i < 100; ++i)
-	{
-		int randX = rand() % 100;
-		int randY = rand() % 100;
-		int randZ = rand() % 100;
-
-		transform.position = glm::vec3(randX, randY, -randZ);
-		transform.rotation = glm::vec3(randX, randY, randZ);
-		transform.scale = glm::vec3(1, 1, 1);
-
-		modelType = model_type::RING;
-
-		WorldObject* ring3 = new WorldObject(transform, modelType);
-
-		ring3->setColor(glm::vec4(0, 0, 0.3921568f, 1.0f));
-
-		g_worldObjects.push_back(ring3);
-	}
 }
 
 /*
@@ -375,11 +349,11 @@ void spawn_world()
 */
 void update()
 {
-	//static float zoom = 0.0f;
-	//g_camera.yaw += 0.05f;
-	//g_camera.pitch += 0.005f;
-	g_camera.roll += 0.05f;
-	//g_camera.zoom = sin(zoom+=0.05f);
+	static float zoom = 0.0f;
+	//g_perspective->rotateBy(glm::vec3(0, 0.05f, 0));
+	//g_perspective->rotateBy(glm::vec3(0, 0.05f, 0));
+	//g_perspective->m_settings.m_zoom = sin(zoom+=5.f);
+	//g_ortho->rotateBy(0, 0.005f, 0);
 
 	for each(auto obj in g_worldObjects)
 	{
@@ -392,21 +366,13 @@ void render()
 	GLfloat clearColor[3] = {0.0f, 0.0f, 0};
 	glClearBufferfv(GL_COLOR, 0, clearColor);
 
-	// set the projection-view matrix
-	glm::mat4 camera_zoom = glm::scale(glm::mat4(), glm::vec3(g_camera.zoom+1.0f, g_camera.zoom+1.0f, g_camera.zoom+1.0f));
-	glm::vec3 cameraForward = g_camera.forward();
-	glm::vec3 cameraUp = g_camera.up();
+	// get the projection-view matrix
+	glm::mat4 projection_view = g_perspective->viewProjection();
 
-	printf("%f, %f, %f\n", cameraForward.x, cameraForward.y, cameraForward.z);
-
-	glm::mat4 view_mat = glm::lookAt(g_camera.position, g_camera.position + cameraForward, cameraUp );
-	glm::mat4 projection_mat = glm::perspective(g_camera.fov, (float)WINDOW_WIDTH/WINDOW_HEIGHT, g_camera.zNear, g_camera.zFar);
-
-	glm::mat4 projection_view = projection_mat*view_mat;
-
+	// render each object in the "world"
 	for each(auto obj in g_worldObjects)
 	{
-		const Transform& transform = obj->getTransform();
+		Transform& transform = obj->getTransform();
 		model_type type = obj->getModelType();
 
 		Model* model = g_models[type];
@@ -415,12 +381,10 @@ void render()
 
 		// set the mvp
 		glm::mat4 model_scale = glm::scale(glm::mat4(), transform.scale);
-		glm::mat4 model_rotationX = glm::rotate(glm::mat4(), glm::radians(transform.rotation.x), glm::vec3(1, 0, 0));
-		glm::mat4 model_rotationY = glm::rotate(glm::mat4(), glm::radians(transform.rotation.y), glm::vec3(0, 1, 0));
-		glm::mat4 model_rotationZ = glm::rotate(glm::mat4(), glm::radians(transform.rotation.z), glm::vec3(0, 0, 1));
+		glm::quat model_rotation = transform.rotation();
 		glm::mat4 model_translation = glm::translate(glm::mat4(), transform.position);
 
-		glm::mat4 model_mat = model_translation*model_rotationZ*model_rotationY*model_rotationX*model_scale;
+		glm::mat4 model_mat = model_translation*glm::mat4_cast(model_rotation)*model_scale;
 		
 		glm::mat4 mvp = projection_view*model_mat;
 

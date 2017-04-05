@@ -25,6 +25,10 @@ public:
 	void rotateBy(glm::vec3 rotation);
 	void scaleBy(glm::vec3 scale);
 
+	void translateBy(glm::float32 x, glm::float32 y, glm::float32 z);
+	void rotateBy(glm::float32 x, glm::float32 y, glm::float32 z);
+	void scaleBy(glm::float32 x, glm::float32 y, glm::float32 z);
+
 	void setPosition(glm::vec3 position);
 	void setRotation(glm::vec3 rotation);
 	void setScale(glm::vec3 scale);
@@ -33,7 +37,7 @@ public:
 	glm::vec4 WorldObject::getColor() const;
 
 	model_type getModelType() const;
-	const Transform& getTransform() const;
+	Transform& getTransform();
 
 private:
 	Transform m_transform;
