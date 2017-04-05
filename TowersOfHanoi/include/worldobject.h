@@ -44,7 +44,7 @@ public:
 	glm::vec4 WorldObject::getColor() const;
 
 	model_type getModelType() const;
-	Transform& getTransform();
+	Transform getTransform();
 
 private:
 	Transform m_transform;

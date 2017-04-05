@@ -102,7 +102,7 @@ model_type WorldObject::getModelType() const
 	return m_modelType;
 }
 
-Transform& WorldObject::getTransform()
+Transform WorldObject::getTransform()
 {
 	return m_transform;
 }

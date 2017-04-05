@@ -18,7 +18,10 @@
 #include <shader.h>
 #include <model.h>
 #include <camera.h>
+#include <game.h>
 #include <worldobject.h>
+#include <movetowards.h>
+#include <rotatetowards.h>
 
 // opengl debug
 void APIENTRY glDebugOutput(GLenum source, 
@@ -63,9 +66,16 @@ GLFWwindow* g_window;
 std::unordered_map<model_type, Mesh*> g_meshes;
 std::unordered_map<model_type, Model*> g_models;
 std::unordered_map<shader_type, Shader*> g_shaderPrograms;
-std::vector<WorldObject*> g_worldObjects;
 PerspectiveCamera* g_perspective = nullptr;
 OrthoCamera* g_ortho = nullptr;
+
+Game* g_game = nullptr;
+
+std::vector<int> g_keysPressed;
+
+bool isOrtho = true;
+
+float pressDelay = 0;
 
 int main()
 {
@@ -93,6 +103,17 @@ int main()
 			update((float)frameDelta);
 			accumulatedTime -= frameDelta;
 			timeSimulatedThisIteration += frameDelta;
+
+
+			if (pressDelay > 0)
+			{
+				pressDelay -= frameDelta;
+
+			}
+			if (pressDelay < 0)
+			{
+				pressDelay = 0;
+			}
 		}
 
 		render();
@@ -183,13 +204,8 @@ void shutdown()
 	// destroy shaders, buffers, etc. here (before gl-context is destroyed)
 	// ...
 
-	// destroy "world"
-	for each (auto worldObject in g_worldObjects)
-	{
-		delete worldObject;
-	}
-
-	g_worldObjects.clear();
+	// destroy "game"
+	delete g_game;
 
 	// destroy camera
 	if (g_perspective)
@@ -352,46 +368,23 @@ void setup_camera()
 	auto perspectiveSettings = PerspectiveCameraSettings((float)WINDOW_WIDTH/WINDOW_HEIGHT);
 
 	Transform perspectiveTransform;
-	perspectiveTransform.position = glm::vec3(0, 0, 1);
+	perspectiveTransform.position = glm::vec3(0, 0, 5);
 
 	g_perspective = new PerspectiveCamera(perspectiveTransform, perspectiveSettings);
 
 	// setup the ortho camera using default settings
 	auto orthoSettings = OrthoCameraSettings();
+	orthoSettings.zFar = 100.0f;
 
 	Transform orthoTransform;
-	orthoTransform.position = glm::vec3(0, 0, 10);
+	orthoTransform.position = glm::vec3(0, 0, 50.f);
 
 	g_ortho = new OrthoCamera(orthoTransform, orthoSettings);
 }
 
 void spawn_world()
 {
-	// example object
-	Transform transform;
-	transform.position = glm::vec3(0, 0, -1);
-	transform.pitch = 90;
-
-	model_type modelType = model_type::RING;
-
-	WorldObject* ring1 = new WorldObject(transform, modelType);
-
-	ring1->setColor(glm::vec4(1.f, 0, 0, 1.0f));
-	
-	g_worldObjects.push_back(ring1);
-
-	// other object
-	transform.position = glm::vec3(-3, 0, -1);
-	transform.scale = glm::vec3(0.125f, 1, 0.125f);
-	transform.pitch = 0;
-
-	modelType = model_type::PEG;
-
-	WorldObject* peg1 = new WorldObject(transform, modelType);
-
-	peg1->setColor(glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-
-	g_worldObjects.push_back(peg1);
+	g_game = new Game();
 }
 
 /*
@@ -404,11 +397,9 @@ void update(float deltaTime)
 	//g_perspective->m_settings.m_zoom = sin(zoom+=5.f);
 	//g_ortho->rotateBy(0, 0.005f, 0);
 
-	for each(auto obj in g_worldObjects)
-	{
-		obj->setColor(glm::vec4((float)rand()/RAND_MAX, (float)rand()/RAND_MAX, (float)rand()/RAND_MAX, (float)rand()/RAND_MAX));
-		obj->update(deltaTime);
-	}
+	int latestKeyPress = g_keysPressed.size() > 0 ? g_keysPressed[g_keysPressed.size()-1] : -1;
+	g_keysPressed.clear();
+	g_game->update(deltaTime, latestKeyPress);
 }
 
 void render()
@@ -417,10 +408,10 @@ void render()
 	glClearBufferfv(GL_COLOR, 0, clearColor);
 
 	// get the projection-view matrix
-	glm::mat4 projection_view = g_perspective->viewProjection();
+	glm::mat4 projection_view = isOrtho ? g_ortho->viewProjection() : g_perspective->viewProjection();
 
 	// render each object in the "world"
-	for each(auto obj in g_worldObjects)
+	for each(auto obj in g_game->m_worldObjects)
 	{
 		Transform& transform = obj->getTransform();
 		model_type type = obj->getModelType();
@@ -467,12 +458,50 @@ void error_callback(int error, const char* description)
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	
+	g_keysPressed.push_back(key);
+
+	if (pressDelay == 0)
+	{
+		if (key == GLFW_KEY_SPACE)
+		{
+			isOrtho = !isOrtho;
+			pressDelay = 0.25f;
+		}
+
+		// camera rotation
+		if (key == GLFW_KEY_A && !isOrtho)
+		{
+			g_perspective->rotateBy(0, -0.05f, 0);
+			pressDelay = 0.25f;
+		}
+		if (key == GLFW_KEY_D && !isOrtho)
+		{
+			g_perspective->rotateBy(0, 0.05f, 0);
+			pressDelay = 0.25f;
+		}
+
+		// camera translation
+		if (key == GLFW_KEY_S && !isOrtho)
+		{
+			g_perspective->translateBy(0, 0, 0.75f);
+			pressDelay = 0.25f;
+		}
+		if (key == GLFW_KEY_W && !isOrtho)
+		{
+			g_perspective->translateBy(0, 0, -0.75f);
+			pressDelay = 0.25f;
+		}
+	}
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	
+	if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS)
+	{
+		MoveTowards* move_towards = new MoveTowards(g_game->m_worldObjects[0], glm::vec3(3, 0, -1), 5.0f);
+
+		g_game->m_worldObjects[0]->pushAction(move_towards);
+	}
 }
 
 

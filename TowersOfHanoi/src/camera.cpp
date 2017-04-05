@@ -61,6 +61,7 @@ m_settings(settings)
 
 glm::mat4 PerspectiveCamera::viewProjection()
 {
+	
 	glm::mat4 camera_zoom = glm::scale(glm::mat4(), glm::vec3(m_settings.m_zoom+1.0f, m_settings.m_zoom+1.0f, m_settings.m_zoom+1.0f));
 	glm::vec3 cameraForward = m_transform.forward();
 	glm::vec3 cameraUp = m_transform.up();
