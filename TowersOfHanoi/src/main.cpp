@@ -82,6 +82,7 @@ int main()
 
 	while (!glfwWindowShouldClose(g_window))
 	{
+		update();
 		render();
 		glfwSwapBuffers(g_window);
 		glfwPollEvents();
@@ -117,7 +118,7 @@ void gl_init()
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 #endif
 
-	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "ModelLoading", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Towers Of Hanoi", NULL, NULL);
 	if (!window)
 	{
 		fprintf(stderr, "GLFW initialization has failed.\n");
@@ -301,8 +302,9 @@ void setup_attributes()
 
 void setup_camera()
 {
-	g_camera.position = glm::vec3(0.0f, 0.0f, 1.0f);
+	g_camera.position = glm::vec3(0.0f, 0.0f, 50.0f);
 	g_camera.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+	g_camera.zoom = 0.0f;
 	g_camera.fov = 45.0f;
 	g_camera.zNear = 0.1f;
 	g_camera.zFar = 100.0f;
@@ -313,14 +315,14 @@ void spawn_world()
 	// example object
 	Transform transform;
 	transform.position = glm::vec3(0, 0, -1);
-	transform.rotation = glm::vec3(0, 0, 0);
+	transform.rotation = glm::vec3(90, 0, 0);
 	transform.scale = glm::vec3(0.125f, 0.125f, 0.125f);
 
 	model_type modelType = model_type::RING;
 
 	WorldObject* ring1 = new WorldObject(transform, modelType);
 
-	ring1->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	ring1->setColor(glm::vec4(1.f, 0, 0, 1.0f));
 	
 	g_worldObjects.push_back(ring1);
 
@@ -333,23 +335,77 @@ void spawn_world()
 
 	WorldObject* ring2 = new WorldObject(transform, modelType);
 
-	ring1->setColor(glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
+	ring2->setColor(glm::vec4(0.3568627f, 0.6117647f, 0.3921568f, 1.0f));
 
 	g_worldObjects.push_back(ring2);
+
+	// example object 3
+	transform.position = glm::vec3(1.0f, 0.0f, -1.0f);
+	transform.rotation = glm::vec3(0, 0, 0);
+	transform.scale = glm::vec3(0.125f, 0.125f, 0.125f);
+
+	modelType = model_type::RING;
+
+	WorldObject* ring3 = new WorldObject(transform, modelType);
+
+	ring3->setColor(glm::vec4(0, 0, 0.3921568f, 1.0f));
+
+	g_worldObjects.push_back(ring3);
+
+	for (int i = 0; i < 100; ++i)
+	{
+		int randX = rand() % 100;
+		int randY = rand() % 100;
+		int randZ = rand() % 100;
+
+		transform.position = glm::vec3(randX, randY, -randZ);
+		transform.rotation = glm::vec3(randX, randY, randZ);
+		transform.scale = glm::vec3(randX, randY, randZ);
+
+		modelType = model_type::RING;
+
+		WorldObject* ring3 = new WorldObject(transform, modelType);
+
+		ring3->setColor(glm::vec4(0, 0, 0.3921568f, 1.0f));
+
+		g_worldObjects.push_back(ring3);
+	}
 }
 
 /*
-* Rendering
+* UPDATING
 */
 void update()
 {
+	static float zoom = 0.0f;
+	g_camera.rotation.y += 0.5f;
+	g_camera.rotation.z += 10.0f;
+	g_camera.zoom = sin(zoom+=0.05f);
+
+	for each(auto obj in g_worldObjects)
+	{
+		obj->setColor(glm::vec4((float)rand()/RAND_MAX, (float)rand()/RAND_MAX, (float)rand()/RAND_MAX, (float)rand()/RAND_MAX));
+	}
 }
 
 void render()
 {
-	GLfloat clearColor[3] = {0.15f, 0.10f, 0};
+	GLfloat clearColor[3] = {0.0f, 0.0f, 0};
 	glClearBufferfv(GL_COLOR, 0, clearColor);
+
+	// set the projection-view matrix
+	glm::mat4 camera_zoom = glm::scale(glm::mat4(), glm::vec3(g_camera.zoom+1.0f, g_camera.zoom+1.0f, g_camera.zoom+1.0f));
+	glm::mat4 camera_rotationX = glm::rotate(glm::mat4(), glm::radians(g_camera.rotation.x), glm::vec3(1, 0, 0));
+	glm::mat4 camera_rotationY = glm::rotate(glm::mat4(), glm::radians(g_camera.rotation.y), glm::vec3(0, 1, 0));
+	glm::mat4 camera_rotationZ = glm::rotate(glm::mat4(), glm::radians(g_camera.rotation.z), glm::vec3(0, 0, 1));
 	
+	glm::mat4 view_mat = glm::lookAt(g_camera.position, glm::vec3(0), glm::vec3(0, 1, 0));
+	view_mat *= camera_zoom;
+	view_mat *= camera_rotationZ*camera_rotationY*camera_rotationZ;
+	glm::mat4 projection_mat = glm::perspective(g_camera.fov, (float)WINDOW_WIDTH/WINDOW_HEIGHT, g_camera.zNear, g_camera.zFar);
+
+	glm::mat4 projection_view = projection_mat*view_mat;
+
 	for each(auto obj in g_worldObjects)
 	{
 		const Transform& transform = obj->getTransform();
@@ -360,17 +416,15 @@ void render()
 		Shader* shader = g_shaderPrograms[model->shader];
 
 		// set the mvp
-		glm::mat4 scale = glm::scale(glm::mat4(), transform.scale);
-		glm::mat4 rotationX = glm::rotate(glm::mat4(), transform.rotation.x, glm::vec3(1, 0, 0));
-		glm::mat4 rotationY = glm::rotate(glm::mat4(), transform.rotation.y, glm::vec3(0, 1, 0));
-		glm::mat4 rotationZ = glm::rotate(glm::mat4(), transform.rotation.z, glm::vec3(0, 0, 1));
-		glm::mat4 translation = glm::translate(glm::mat4(), transform.position);
+		glm::mat4 model_scale = glm::scale(glm::mat4(), transform.scale);
+		glm::mat4 model_rotationX = glm::rotate(glm::mat4(), glm::radians(transform.rotation.x), glm::vec3(1, 0, 0));
+		glm::mat4 model_rotationY = glm::rotate(glm::mat4(), glm::radians(transform.rotation.y), glm::vec3(0, 1, 0));
+		glm::mat4 model_rotationZ = glm::rotate(glm::mat4(), glm::radians(transform.rotation.z), glm::vec3(0, 0, 1));
+		glm::mat4 model_translation = glm::translate(glm::mat4(), transform.position);
 
-		glm::mat4 model_mat = scale*rotationZ*rotationY*rotationX*translation;
-		glm::mat4 view_mat = glm::lookAt(g_camera.position, glm::vec3(0), glm::vec3(0, 1, 0));
-		glm::mat4 projection_mat = glm::perspective(g_camera.fov, (float)WINDOW_WIDTH/WINDOW_HEIGHT, g_camera.zNear, g_camera.zFar);
+		glm::mat4 model_mat = model_translation*model_rotationZ*model_rotationY*model_rotationX*model_scale;
 		
-		glm::mat4 mvp = projection_mat*view_mat*model_mat;
+		glm::mat4 mvp = projection_view*model_mat;
 
 		glUseProgram(shader->program);
 
